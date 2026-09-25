@@ -1,0 +1,399 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Language {
+  code               String         @id @unique
+  name               String
+  nativeName         String
+  flag               String
+  isNativeSupported  Boolean        @default(false)
+  isTargetSupported  Boolean        @default(true)
+  scriptCode         String
+  direction          String         @default("ltr")
+  createdAt          DateTime       @default(now())
+  nativeLanguagePairs LanguagePair[] @relation("NativeLanguagePairs")
+  targetLanguagePairs LanguagePair[] @relation("TargetLanguagePairs")
+}
+
+model User {
+  id                 String                  @id @default(cuid())
+  email              String                  @unique
+  password           String
+  name               String
+  avatar             String?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  profile            UserProfile?
+  preferences        UserLanguagePreference?
+  learningPaths      LearningPath[]
+  exerciseAttempts   ExerciseAttempt[]
+  progress           UserProgress?
+  vocabularyProgress VocabularyProgress[]
+  conversations      Conversation[]
+  translations       TranslationRequest[]
+  achievements       UserAchievement[]
+  dailyActivities    DailyActivity[]
+  streak             Streak?
+  placementAttempts  PlacementAttempt[]
+  aiInteractions     AIInteraction[]
+}
+
+model UserProfile {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio                     String?
+  motivation              String?
+  dailyGoalMinutes        Int      @default(15)
+  experienceLevel         String?
+  timezone                String   @default("UTC")
+  notifications           Boolean  @default(true)
+  soundEnabled            Boolean  @default(true)
+  transliterationEnabled  Boolean  @default(true)
+  theme                   String   @default("system")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model UserLanguagePreference {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nativeLanguageCode      String
+  targetLanguageCode      String
+  instructionLanguageCode String
+  learningLanguageCode    String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model LanguagePair {
+  id                 String           @id @default(cuid())
+  nativeLanguageCode String
+  targetLanguageCode String
+  nativeLanguage     Language         @relation("NativeLanguagePairs", fields: [nativeLanguageCode], references: [code])
+  targetLanguage     Language         @relation("TargetLanguagePairs", fields: [targetLanguageCode], references: [code])
+  description        String?
+  culturalNotes      String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  learningPaths      LearningPath[]
+  modules            Module[]
+  lessons            Lesson[]
+  lessonContents     LessonContent[]
+  vocabularies       Vocabulary[]
+  grammarTopics      GrammarTopic[]
+  placementTests     PlacementTest[]
+
+  @@unique([nativeLanguageCode, targetLanguageCode])
+}
+
+model LearningPath {
+  id               String       @id @default(cuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  languagePairId   String
+  languagePair     LanguagePair @relation(fields: [languagePairId], references: [id], onDelete: Cascade)
+  isActive         Boolean      @default(true)
+  currentModuleId  String?
+  currentLessonId  String?
+  level            String       @default("A1")
+  xpEarned         Int          @default(0)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([userId, languagePairId])
+}
+
+model Module {
+  id             String       @id @default(cuid())
+  languagePairId String
+  languagePair   LanguagePair @relation(fields: [languagePairId], references: [id], onDelete: Cascade)
+  orderIndex     Int
+  category       String
+  title          String
+  description    String
+  icon           String
+  createdAt      DateTime     @default(now())
+  lessons        Lesson[]
+}
+
+model Lesson {
+  id               String          @id @default(cuid())
+  languagePairId   String
+  languagePair     LanguagePair    @relation(fields: [languagePairId], references: [id], onDelete: Cascade)
+  moduleId         String
+  module           Module          @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  orderIndex       Int
+  title            String
+  objective        String
+  culturalTip      String?
+  xpReward         Int             @default(30)
+  estimatedMinutes Int             @default(10)
+  createdAt        DateTime        @default(now())
+  contents         LessonContent[]
+  vocabularies     Vocabulary[]
+  grammarTopics    GrammarTopic[]
+  exercises        Exercise[]
+}
+
+model LessonContent {
+  id             String       @id @default(cuid())
+  lessonId       String
+  lesson         Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  languagePairId String
+  languagePair   LanguagePair @relation(fields: [languagePairId], references: [id], onDelete: Cascade)
+  orderIndex     Int
+  contentType    String
+  content        String
+  createdAt      DateTime     @default(now())
+}
+
+model Vocabulary {
+  id                     String               @id @default(cuid())
+  languagePairId         String
+  languagePair           LanguagePair         @relation(fields: [languagePairId], references: [id], onDelete: Cascade)
+  lessonId               String?
+  lesson                 Lesson?              @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  targetWord             String
+  nativeMeaning          String
+  pronunciation          String
+  transliteration        String?
+  partOfSpeech           String
+  audioUrl               String?
+  exampleTarget          String
+  exampleTransliteration String?
+  exampleNative          String
+  notes                  String?
+  createdAt              DateTime             @default(now())
+  progress               VocabularyProgress[]
+}
+
+model GrammarTopic {
+  id             String       @id @default(cuid())
+  languagePairId String
+  languagePair   LanguagePair @relation(fields: [languagePairId], references: [id], onDelete: Cascade)
+  lessonId       String?
+  lesson         Lesson?      @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  title          String
+  explanation    String
+  ruleSummary    String
+  examples       String
+  commonMistakes String
+  createdAt      DateTime     @default(now())
+}
+
+model Exercise {
+  id                    String            @id @default(cuid())
+  lessonId              String
+  lesson                Lesson            @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  orderIndex            Int
+  type                  String
+  instruction           String
+  prompt                String
+  promptTransliteration String?
+  audioText             String?
+  correctAnswer         String
+  acceptableAnswers     String
+  options               String
+  explanation           String
+  hintLevel1            String
+  hintLevel2            String
+  hintLevel3            String
+  createdAt             DateTime          @default(now())
+  attempts              ExerciseAttempt[]
+}
+
+model ExerciseAttempt {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId         String
+  exercise           Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  userAnswer         String
+  isCorrect          Boolean
+  score              Float
+  feedback           String
+  evaluationDetails  String?
+  hintsUsed          Int      @default(0)
+  timeSpentSeconds   Int      @default(0)
+  createdAt          DateTime @default(now())
+}
+
+model UserProgress {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalXp              Int      @default(0)
+  currentLevel         Int      @default(1)
+  lessonsCompleted     Int      @default(0)
+  exercisesCompleted   Int      @default(0)
+  totalAccuracy        Float    @default(0.0)
+  totalPracticeMinutes Int      @default(0)
+  conversationsCount   Int      @default(0)
+  updatedAt            DateTime @updatedAt
+}
+
+model VocabularyProgress {
+  id                 String     @id @default(cuid())
+  userId             String
+  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vocabularyId       String
+  vocabulary         Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+  box                Int        @default(1)
+  intervalDays       Int        @default(1)
+  easeFactor         Float      @default(2.5)
+  consecutiveCorrect Int        @default(0)
+  totalAttempts      Int        @default(0)
+  lastReviewedAt     DateTime?
+  nextReviewAt       DateTime   @default(now())
+  mastery            Int        @default(0)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  @@unique([userId, vocabularyId])
+}
+
+model Conversation {
+  id             String                @id @default(cuid())
+  userId         String
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  languagePairId String
+  scenario       String
+  difficulty     String                @default("beginner")
+  title          String
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  messages       ConversationMessage[]
+}
+
+model ConversationMessage {
+  id                    String       @id @default(cuid())
+  conversationId        String
+  conversation          Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender                String
+  targetText            String
+  transliteration       String?
+  nativeTranslation     String?
+  nativeExplanation     String?
+  correction            String?
+  correctionExplanation String?
+  createdAt             DateTime     @default(now())
+}
+
+model TranslationRequest {
+  id                 String   @id @default(cuid())
+  userId             String?
+  user               User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sourceLanguage     String
+  targetLanguage     String
+  sourceText         String
+  translatedText     String
+  pronunciation      String?
+  transliteration    String?
+  literalMeaning     String?
+  grammarExplanation String?
+  usageNotes         String?
+  createdAt          DateTime @default(now())
+}
+
+model Achievement {
+  id               String            @id @default(cuid())
+  code             String            @unique
+  titleKey         String
+  descriptionKey   String
+  icon             String
+  xpReward         Int               @default(50)
+  category         String
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+model DailyActivity {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date               String
+  minutesSpent       Int      @default(0)
+  xpEarned           Int      @default(0)
+  lessonsCompleted   Int      @default(0)
+  exercisesCompleted Int      @default(0)
+  goalMet            Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  @@unique([userId, date])
+}
+
+model Streak {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak  Int      @default(0)
+  longestStreak  Int      @default(0)
+  lastActiveDate String?
+  updatedAt      DateTime @updatedAt
+}
+
+model PlacementTest {
+  id             String              @id @default(cuid())
+  languagePairId String
+  languagePair   LanguagePair        @relation(fields: [languagePairId], references: [id], onDelete: Cascade)
+  title          String
+  description    String
+  createdAt      DateTime            @default(now())
+  questions      PlacementQuestion[]
+  attempts       PlacementAttempt[]
+}
+
+model PlacementQuestion {
+  id              String        @id @default(cuid())
+  placementTestId String
+  placementTest   PlacementTest @relation(fields: [placementTestId], references: [id], onDelete: Cascade)
+  orderIndex      Int
+  difficulty      String
+  instruction     String
+  question        String
+  options         String
+  correctAnswer   String
+  explanation     String
+}
+
+model PlacementAttempt {
+  id               String        @id @default(cuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  placementTestId  String
+  placementTest    PlacementTest @relation(fields: [placementTestId], references: [id], onDelete: Cascade)
+  score            Float
+  recommendedLevel String
+  answers          String
+  createdAt        DateTime      @default(now())
+}
+
+model AIInteraction {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interactionType String
+  promptContext   String
+  input           String
+  output          String
+  tokensUsed      Int?
+  createdAt       DateTime @default(now())
+}
