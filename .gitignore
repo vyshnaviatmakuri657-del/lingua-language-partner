@@ -31,3 +31,11 @@ yarn-error.log*
 *.pem
 .vscode/
 .idea/
+
+node_modules/
+.env
+
+.next/
+__pycache__/
+*.pyc
+*.tsbuildinfo
