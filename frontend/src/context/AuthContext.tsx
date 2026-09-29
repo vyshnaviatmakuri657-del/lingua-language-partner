@@ -4,6 +4,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useLanguage } from "./LanguageContext";
 import { NativeLanguageCode, TargetLanguageCode } from "@/lib/i18n";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+  
 export interface SafeUser {
   id: string;
   email: string;
@@ -207,7 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch("/api/user", { headers });
+      const res = await fetch(`${API_BASE_URL}/api/user`, { headers });
       if (res.ok) {
         const data = await res.json();
         if (data.user) {
@@ -306,7 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const valid = Math.max(5, Math.min(120, minutes));
       if (user) {
         try {
-          await fetch("/api/user/goal", {
+          await fetch(`${API_BASE_URL}/api/user/goal`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ dailyGoalMinutes: valid }),
@@ -353,7 +356,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const headers: HeadersInit = { "Content-Type": "application/json" };
           if (token) headers["Authorization"] = `Bearer ${token}`;
 
-          await fetch("/api/user/record-activity", {
+          await fetch(`${API_BASE_URL}/api/user/record-activity`, {
             method: "POST",
             headers,
             body: JSON.stringify(options),
@@ -621,7 +624,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           Object.keys(guestData.vocabProgress || {}).length > 0 ||
           completedLessons.length > 0
         ) {
-          await fetch("/api/user/sync-guest-progress", {
+          await fetch(`${API_BASE_URL}/api/user/sync-guest-progress`,  {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -645,7 +648,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`,  {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: normalizedEmail, password }),
@@ -683,7 +686,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ) => {
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -722,7 +725,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     googleId?: string;
   }) => {
     try {
-      const res = await fetch("/api/auth/google", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -753,7 +756,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch(`${API_BASE_URL}/api/auth/logout`, { method: "POST" });
     } finally {
       if (typeof window !== "undefined") {
         localStorage.removeItem("token");
@@ -768,7 +771,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     target: TargetLanguageCode
   ): Promise<boolean> => {
     try {
-      const res = await fetch("/api/user/preferences", {
+      const res = await fetch(`${API_BASE_URL}/api/user`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
