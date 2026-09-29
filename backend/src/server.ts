@@ -73,7 +73,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: "Internal server error", message: err?.message || String(err) });
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`===============================================`);
   console.log(`  Lingua Backend API Server is active!        `);
   console.log(`  Listening on: http://localhost:${PORT}      `);
